@@ -8,6 +8,10 @@ String currentFolder = "/";
 String availableFolders[20];
 int folderCount = 0;
 
+bool isScanning = true;
+unsigned short int scanProgress = 0;
+unsigned short int scanTotal = 0;
+
 bool initSDCard() {
     SPI.begin(SD_SCK, SD_MISO, SD_MOSI);
     if (!SD.begin(SD_CS)) {
@@ -18,38 +22,43 @@ bool initSDCard() {
     return true;
 }
 
-void scanAvailableFolders(const String& folder = "/") {
+void scanFolders(const String& folder) {
     folderCount = 0;
-    Serial.printf("Scanning for folders in: %s\n", folder.c_str());
+    scanProgress = 0;
+    scanTotal = 0;
+    isScanning = true;
 
+    Serial.printf("Scanning for folders in: %s\n", folder.c_str());
     availableFolders[folderCount++] = folder;
 
     File root = SD.open(folder);
     if (!root || !root.isDirectory()) {
         Serial.println("Failed to open folder");
+        isScanning = false;
         return;
     }
 
-    File file = root.openNextFile();
-    while (file && folderCount < 20) {
-        if (file.isDirectory()) {
-            String dirname = String(file.name());
+    for (File f = root.openNextFile(); f; f = root.openNextFile()) {
+        if (f.isDirectory()) scanTotal++;
+    }
+    root.rewindDirectory();
+
+    for (File f = root.openNextFile(); f; f = root.openNextFile()) {
+        if (f.isDirectory()) {
+            String dirname = String(f.name());
             if (!dirname.startsWith("/")) {
-                if (folder == "/") {
-                    dirname = "/" + dirname;
-                } else {
-                    dirname = folder + "/" + dirname;
-                }
+                dirname = (folder == "/") ? "/" + dirname : folder + "/" + dirname;
             }
-            Serial.printf("Found folder: %s\n", dirname.c_str());
             availableFolders[folderCount++] = dirname;
+            scanProgress++;
         }
-        file = root.openNextFile();
     }
     root.close();
 
+    isScanning = false;
     Serial.printf("Total folders found: %d\n", folderCount);
 }
+
 void listAudioFiles(const String& folder) {
     fileCount = 0;
     currentFolder = folder;

@@ -9,6 +9,10 @@ M5Canvas sprite(&M5Cardputer.Display);
 M5Canvas spr(&M5Cardputer.Display);
 
 bool nextTrackRequest = false;
+
+constexpr unsigned long HOLD_DELAY = 1500;
+constexpr int SCROLL_SPEED = 1;
+
 uint8_t sliderPos = 0;
 int16_t textPos = 90;
 uint8_t graphSpeed = 0;
@@ -55,6 +59,33 @@ String getPlaybackTimeString() {
     return String(buf);
 }
 
+struct MarqueeState {
+    unsigned long startTime = 0;
+    int offset = 0; 
+    bool active = false;
+};
+MarqueeState marquee;
+
+void updateMarquee(bool active, const String& text) {
+    unsigned long now = millis();
+
+    if (active) {
+        if (!marquee.active) {
+            marquee.startTime = now;
+            marquee.offset = 0;
+            marquee.active = true;
+        } else if (now - marquee.startTime > HOLD_DELAY) {
+            marquee.offset += SCROLL_SPEED;
+            if (marquee.offset > text.length() * 6) {
+                marquee.offset = 0;
+            }
+        }
+    } else {
+        marquee.active = false;
+        marquee.offset = 0;
+    }
+}
+
 void drawFolderSelect() {
     gray = grays[15];
     light = grays[10];
@@ -62,54 +93,86 @@ void drawFolderSelect() {
     sprite.fillRect(0, 0, 240, 135, gray);
     sprite.drawRoundRect(0, 0, 240, 135, 4, light);
 
-    sprite.fillRoundRect(5, 5, 230, 22, 4, grays[12]);
+    sprite.setTextFont(1);
+    sprite.setTextColor(ORANGE, gray);
+    sprite.setTextDatum(4);
+    sprite.drawString("Select Folder", 120, 10);
+
+    sprite.fillRoundRect(10, 22, 220, 20, 4, grays[12]);
     sprite.setTextFont(1);
     sprite.setTextColor(WHITE, grays[12]);
     sprite.setTextDatum(0);
-    sprite.drawString("Path: " + currentFolder, 10, 11);
-
-    sprite.setTextFont(2);
-    sprite.setTextColor(ORANGE, gray);
-    sprite.setTextDatum(4);
-    sprite.drawString("Select Folder", 120, 33);
+    sprite.drawString(currentFolder, 16, 27);
 
     sprite.setTextFont(0);
     sprite.setTextDatum(0);
     sprite.setTextColor(grays[5], gray);
-    sprite.drawString("[;]/[.] - Navigate   [ok] - Open", 10, 110);
-    sprite.drawString("ESC - Back", 10, 122);
+    sprite.drawString("[;]/[.]-Nav  [ok]-Open  [Esc]-Back", 10, 122);
 
     sprite.setTextFont(1);
-    int startY = 48;
-    int lineHeight = 14;
-    int maxVisible = 5;
 
-    int totalItems = folderCount + 1;
-    int startIdx = max(0, selectedFolderIndex - 2);
+    const int startY = 48;
+    const int lineHeight = 14;
+    const int maxVisible = 5;
 
-    for (int i = 0; i < maxVisible && (startIdx + i) < totalItems; i++) {
-        int idx = startIdx + i;
-        int y = startY + i * lineHeight;
+    const bool hasParent = (currentFolder != "/");
+    const int baseParent = hasParent ? 1 : 0;
+    const int totalItems = baseParent + folderCount + 1;
 
-        bool isConfirmButton = (idx == folderCount);
-        bool isParentButton = (!isConfirmButton && idx == 0 && currentFolder != "/");
+    if (selectedFolderIndex < 0) selectedFolderIndex = 0;
+    if (selectedFolderIndex >= totalItems) selectedFolderIndex = totalItems - 1;
 
-        if (idx == selectedFolderIndex) {
-            sprite.fillRoundRect(6, y - 1, 228, lineHeight + 2, 3,
-                                 isConfirmButton ? RED : BLUE);
-            sprite.setTextColor(WHITE, isConfirmButton ? RED : BLUE);
+    int scrollStart = selectedFolderIndex - (maxVisible / 2);
+    if (scrollStart < 0) scrollStart = 0;
+    if (scrollStart + maxVisible > totalItems) scrollStart = max(0, totalItems - maxVisible);
+
+    int y = startY;
+    for (int i = 0; i < maxVisible && (scrollStart + i) < totalItems; ++i) {
+        int idxGlobal = scrollStart + i;
+        bool isSelected = (idxGlobal == selectedFolderIndex);
+
+        bool isParentButton = hasParent && (idxGlobal == 0);
+        bool isConfirmButton = (idxGlobal == totalItems - 1);
+        bool isFolderItem = !isParentButton && !isConfirmButton;
+
+        String displayName;
+        if (isParentButton) {
+            displayName = "..";
+        } else if (isConfirmButton) {
+            displayName = " > Select this folder";
         } else {
-            sprite.setTextColor(isConfirmButton ? RED : (isParentButton ? GREEN : GREEN), gray);
+            int folderIndex = idxGlobal - baseParent;
+            if (folderIndex >= 0 && folderIndex < folderCount) {
+                displayName = availableFolders[folderIndex];
+                int lastSlash = displayName.lastIndexOf('/');
+                if (lastSlash >= 0) displayName = displayName.substring(lastSlash + 1);
+            } else {
+                displayName = "(?)";
+            }
         }
 
-        if (isConfirmButton) {
-            sprite.drawString("[> Confirm Selection]", 12, y);
-        } else if (isParentButton) {
-            sprite.drawString("..", 12, y);
+        if (isSelected) {
+            uint16_t bg = isConfirmButton ? RED : BLUE;
+            
+            const int boxWidth = 224;
+            const int boxY = y - 1;
+            const int boxHeight = lineHeight + 2;
+
+            sprite.fillRoundRect(8, boxY, boxWidth, boxHeight, 3, bg);
+            sprite.setTextColor(WHITE, bg);
         } else {
-            String displayName = availableFolders[idx];
-            sprite.drawString(displayName.substring(0, 24), 12, y);
+            uint16_t fg = isConfirmButton ? RED : GREEN;
+            sprite.setTextColor(fg, gray);
         }
+
+        bool cursorOnItem = isSelected;
+        updateMarquee(cursorOnItem, displayName);
+        int drawX = 14 - marquee.offset;
+        int textY = y + 1;
+
+        sprite.drawString(displayName, drawX, textY);
+
+        y += lineHeight;
     }
 
     sprite.pushSprite(0, 0);
@@ -171,11 +234,11 @@ void drawPlayer() {
             sprite.fillTriangle(156, 102, 156, 110, 160, 106, grays[13]);
         }
 
-        sprite.fillRoundRect(172, 82, 60, 3, 2, YELLOW);
-        sprite.fillRoundRect(155 + ((volume / volumeStep) * 17), 80, 10, 8, 2, grays[2]);
-        sprite.fillRoundRect(157 + ((volume / volumeStep) * 17), 82, 6, 4, 2, grays[10]);
+        sprite.fillRoundRect(172, 82, 60, 3, 2, YELLOW); // 60 - width
+        sprite.fillRoundRect(155 + ((volume * (60 - 10)) / 20), 80, 10, 8, 2, grays[2]);
+        sprite.fillRoundRect(157 + ((volume * (60 - 10)) / 20), 82, 6, 4, 2, grays[10]);
 
-        sprite.fillRoundRect(172, 124, 30, 3, 2, MAGENTA);
+        sprite.fillRoundRect(172, 124, 30, 3, 2, MAGENTA); // 30 - width
         sprite.fillRoundRect(172 + (M5Cardputer.Display.getBrightness() * 30) / 255, 122, 10, 8, 2, grays[2]);
         sprite.fillRoundRect(174 + (M5Cardputer.Display.getBrightness() * 30) / 255, 124, 6, 4, 2, grays[10]);
 
@@ -265,13 +328,28 @@ void drawPlayer() {
     if (graphSpeed == 4) graphSpeed = 0;
 }
 
+void drawScanOverlay() {
+    sprite.fillRoundRect(40, 40, 160, 55, 8, BLACK);
+    sprite.drawRoundRect(40, 40, 160, 55, 8, YELLOW);
+
+    sprite.setTextColor(WHITE, BLACK);
+    sprite.setTextFont(1);
+    sprite.setTextDatum(4);
+
+    sprite.drawString("Scanning folders...", 120, 55);
+
+    int barWidth = map(scanProgress, 0, max<unsigned short int>(1, scanTotal), 0, 120);
+    sprite.drawRoundRect(60, 70, 120, 10, 3, NAVY);
+    sprite.fillRoundRect(60, 70, barWidth, 10, 3, GREEN);
+}
+
 void draw() {
         if (currentUIState == UI_FOLDER_SELECT) {
             drawFolderSelect();
             return;
-        }
+        } else drawPlayer();
 
-        drawPlayer();
+        if (isScanning) drawScanOverlay();
     }
 
 void handleKeyPress(char key) {
@@ -291,23 +369,25 @@ void handleKeyPress(char key) {
                 isPlaying = true;
                 isStoped = false;
                 textPos = 90;
+                trackStartMillis = millis();
+                playbackTime = 0;
             }
             else if (selectedFolderIndex == 0 && currentFolder != "/") {
                 int lastSlash = currentFolder.lastIndexOf('/');
                 currentFolder = (lastSlash > 0) ? currentFolder.substring(0, lastSlash) : "/";
-                scanAvailableFolders(currentFolder);
+                scanFolders(currentFolder);
                 selectedFolderIndex = 0;
             }
             else {
                 currentFolder = availableFolders[selectedFolderIndex];
-                scanAvailableFolders(currentFolder);
+                scanFolders(currentFolder);
                 selectedFolderIndex = 0;
             }
         } else if (key == '`' || key == '\b') {
             if (currentFolder != "/") {
                 int lastSlash = currentFolder.lastIndexOf('/');
                 currentFolder = (lastSlash > 0) ? currentFolder.substring(0, lastSlash) : "/";
-                scanAvailableFolders(currentFolder);
+                scanFolders(currentFolder);
                 selectedFolderIndex = 0;
             }
         }
@@ -315,11 +395,13 @@ void handleKeyPress(char key) {
     else {
     if (key == '`' || key == '\b') {
         audio.stopSong();
+        trackStartMillis = millis();
+        playbackTime = 0;
         isPlaying = false;
         isStoped = true;
         currentUIState = UI_FOLDER_SELECT;
         selectedFolderIndex = 0;
-        scanAvailableFolders("/");
+        scanFolders("/");
     } else if (key == 'a' || key == ' ') {
         if (isPlaying && !isStoped) {
             playbackTime = millis() - trackStartMillis;
@@ -334,7 +416,9 @@ void handleKeyPress(char key) {
         changeVolume(-volumeStep);
     } else if (key == 'v') {
         changeVolume(volumeStep);
-    } else if (key == 'l') {
+    } else if (key == 'k') {
+        M5Cardputer.Display.setBrightness(M5Cardputer.Display.getBrightness() - brightnessStep);
+    }  else if (key == 'l') {
         M5Cardputer.Display.setBrightness(M5Cardputer.Display.getBrightness() + brightnessStep);
     } else if (key == 'n' || key == 'p' || key == 'r' || key == '\n') {
         if (key == 'n') {

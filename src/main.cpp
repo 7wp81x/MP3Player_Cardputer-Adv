@@ -41,7 +41,7 @@ void setup() {
         Serial.println("ERROR: Audio codec initialization failed!");
     }
 
-    scanAvailableFolders("/");
+    scanFolders("/");
     
     Serial.printf("Found %d folders\n", folderCount);
     Serial.printf("Memory info: Free heap=%d, Min free=%d\n", 

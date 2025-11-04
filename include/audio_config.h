@@ -16,7 +16,7 @@ constexpr uint8_t ES8311_ADDR = 0x18;
 constexpr uint32_t ES8311_I2C_FREQ = 400000UL;
 
 extern Audio audio;
-extern uint8_t volume;
+extern int8_t volume;
 extern bool isPlaying;
 extern bool isStoped;
 extern uint8_t hpDetectPin;
@@ -28,7 +28,7 @@ void handlePlayback(bool playCommand, bool stopCommand, bool nextTrack = false, 
 void resetTimer();
 
 bool initES8311Codec();
-void changeVolume(uint8_t v);
+void changeVolume(int8_t v);
 void playTestTone(uint32_t freq_hz, uint32_t duration_ms, uint32_t sample_rate = 44100, uint16_t amplitude = 12000);
 void updateHeadphoneDetection();
 

@@ -20,8 +20,12 @@ extern String currentFolder;
 extern String availableFolders[];
 extern int folderCount;
 
+extern bool isScanning;
+extern unsigned short int scanProgress;
+extern unsigned short int scanTotal;
+
 bool initSDCard();
-void scanAvailableFolders(const String& folder);
+void scanFolders(const String& folder);
 void listAudioFiles(const String& folder);
 String getFileName(int index);
 

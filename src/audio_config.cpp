@@ -1,12 +1,12 @@
+#include "M5Cardputer.h"
 #include "audio_config.h"
 #include "file_manager.h"
-#include "M5Cardputer.h"
 #include "driver/i2s.h"
 #include <Wire.h>
 #include <math.h>
 
 Audio audio;
-uint8_t volume = 10;
+int8_t volume = 10;
 bool isPlaying = true;
 bool isStoped = false;
 uint8_t hpDetectPin = CARDPUTER_HP_DET_PIN;
@@ -24,7 +24,7 @@ static bool es8311_write(uint8_t reg, uint8_t val) {
     return true;
 }
 
-void changeVolume(uint8_t v) {
+void changeVolume(int8_t v) {
     volume += v;
     if (volume > 20) volume = 20;
     else if (volume < 0) volume = 0;
