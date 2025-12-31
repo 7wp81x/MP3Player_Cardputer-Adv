@@ -1,6 +1,6 @@
 # Mini MP3 Player for Cardputer Adv
 
-This is fork from Moo93egy's repository: [CardPuter_Mp3_Adv](https://github.com/Moo93egy/CardPuter_Mp3_Adv)
+This is fork from sourcels's repository: [Mini-Mp3Player_Cardputer-Adv](https://github.com/sourcels/Mini-Mp3Player_Cardputer-Adv)
 
 SD-Card is required
 
