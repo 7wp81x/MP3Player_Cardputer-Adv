@@ -13,6 +13,14 @@ const uint8_t VISIBLE_FILE_COUNT = 10;
 constexpr unsigned long HOLD_DELAY = 1500;
 constexpr int SCROLL_SPEED = 1;
 
+// === DODANE: Zmienne do wygaszania ekranu ===
+constexpr unsigned long SCREEN_DIM_TIMEOUT = 30000; // 30 sekund (możesz zmienić)
+constexpr uint8_t DIMMED_BRIGHTNESS = 16; // Jasność po wygaszeniu
+unsigned long lastActivityTime = 0;
+uint8_t savedBrightness = 128;
+bool isScreenDimmed = false;
+// ============================================
+
 uint8_t sliderPos = 0;
 int16_t textPos = 90;
 uint8_t graphSpeed = 0;
@@ -32,6 +40,7 @@ static uint16_t viewStartIndex = 0;
 void initUI() {
     M5Cardputer.Display.setRotation(1);
     M5Cardputer.Display.setBrightness(brightnessStep*2);
+    savedBrightness = brightnessStep*2; // Zapisz początkową jasność
     sprite1.createSprite(240, 135);
     sprite2.createSprite(86, 16);
 
@@ -40,7 +49,34 @@ void initUI() {
         grays[i] = M5Cardputer.Display.color565(co, co, co + 40);
         co = co - 13;
     }
+    
+    lastActivityTime = millis(); // Inicjalizuj czas aktywności
 }
+
+// === DODANE: Funkcja resetująca timer aktywności ===
+void resetActivityTimer() {
+    lastActivityTime = millis();
+    
+    // Jeśli ekran był wygaszony, przywróć jasność
+    if (isScreenDimmed) {
+        M5Cardputer.Display.setBrightness(savedBrightness);
+        isScreenDimmed = false;
+    }
+}
+// ==================================================
+
+// === DODANE: Funkcja sprawdzająca timeout i wygaszająca ekran ===
+void checkScreenTimeout() {
+    if (isScreenDimmed) return; // Już wygaszony
+    
+    unsigned long now = millis();
+    if (now - lastActivityTime > SCREEN_DIM_TIMEOUT) {
+        savedBrightness = M5Cardputer.Display.getBrightness();
+        M5Cardputer.Display.setBrightness(DIMMED_BRIGHTNESS);
+        isScreenDimmed = true;
+    }
+}
+// ===============================================================
 
 String getPlaybackTimeString() {
     unsigned long elapsed = playbackTime;
@@ -345,6 +381,8 @@ void drawPlayer() {
 }
 
 void draw() {
+    checkScreenTimeout(); // Sprawdź czy wygasić ekran
+    
     if (currentUIState == UI_FOLDER_SELECT) {
         drawFolderSelect();
     } else {
@@ -353,6 +391,8 @@ void draw() {
 }
 
 void handleKeyPress(char key) {
+    resetActivityTimer(); // Reset timera przy każdym naciśnięciu klawisza
+    
     if (key == 'c') {
         changeVolume(-volumeStep);
         Serial.printf("Volume: %d\n", volume);
@@ -360,11 +400,13 @@ void handleKeyPress(char key) {
         changeVolume(volumeStep);
         Serial.printf("Volume: %d\n", volume);
     } else if (key == 'k') {
-        M5Cardputer.Display.setBrightness(M5Cardputer.Display.getBrightness() - brightnessStep);
-        Serial.printf("Brightness: %d\n", M5Cardputer.Display.getBrightness());
+        savedBrightness = M5Cardputer.Display.getBrightness() - brightnessStep;
+        M5Cardputer.Display.setBrightness(savedBrightness);
+        Serial.printf("Brightness: %d\n", savedBrightness);
     }  else if (key == 'l') {
-        M5Cardputer.Display.setBrightness(M5Cardputer.Display.getBrightness() + brightnessStep);
-        Serial.printf("Brightness: %d\n", M5Cardputer.Display.getBrightness());
+        savedBrightness = M5Cardputer.Display.getBrightness() + brightnessStep;
+        M5Cardputer.Display.setBrightness(savedBrightness);
+        Serial.printf("Brightness: %d\n", savedBrightness);
     }
     if (currentUIState == UI_FOLDER_SELECT) {
         const bool hasParent = (currentFolder != "/");
