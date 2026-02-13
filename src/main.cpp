@@ -9,6 +9,7 @@
 TaskHandle_t handleUITask = NULL;
 TaskHandle_t handleAudioTask = NULL;
 volatile bool usbConnected = false;
+bool exitPressed = false;
 
 void showLoadingDots(const char* message = "Scanning folder...") {
     sprite1.fillSprite(TFT_BLACK);
@@ -30,6 +31,38 @@ void showLoadingDots(const char* message = "Scanning folder...") {
         delay(200);
     }
 }
+
+void handlePopupSelection() {
+    switch (popupMenuIndex) {
+        case 0:
+            currentUIState = UI_PLAYER;
+            break;
+            
+        case 1:
+            currentUIState = UI_FOLDER_SELECT;
+            currentFolder = "/";
+            scanDirectory(currentFolder);
+            selectedFolderIndex = 0;
+            break;
+            
+        case 2:
+            if (!isMassStorageMode) {
+                audio.stopSong();
+                isPlaying = false;
+                nextTrackRequest = false;
+                if (startMassStorageMode()) {
+                    isMassStorageMode = true;
+                }
+            }
+            break;
+            
+        case 3:
+            currentUIState = UI_SETTINGS;
+            break;
+    }
+}
+
+
 
 void setup() {
     auto cfg = M5.config();
@@ -81,26 +114,61 @@ void setup() {
                 for (auto ch : ks.word) {
                     if (ch != 0) {
                         if (ch == '`') { 
-                            if (isMassStorageMode) continue; 
+                            resetActivityTimer();
 
-                            if (currentUIState != UI_POPUP_MENU && currentUIState != UI_SETTINGS) {
-                                isPlaying = false; 
+                            if (isMassStorageMode) {
+                                M5Cardputer.Display.fillScreen(TFT_BLACK);
+                                M5Cardputer.Display.setTextColor(TFT_WHITE);
+                                M5Cardputer.Display.setTextDatum(MC_DATUM);
+                                M5Cardputer.Display.drawString("Exiting USB mode...", 120, 67);
+                                delay(600);
+
+                                msc.end();
+                                SD.end();
+                                delay(200);
+
+                                if (initSDCard()) {
+                                    scanDirectory(currentFolder);
+                                    currentUIState = UI_PLAYER;
+                                } else {
+                                    popupText = "SD Error - Reboot?";
+                                    popupStart = millis();
+                                }
+
+                                isMassStorageMode = false;
+                                usbConnected = false;
+                                continue;
+                            }
+
+                            if (currentUIState == UI_PLAYER) {
                                 currentUIState = UI_POPUP_MENU;
-                                popupMenuIndex = 0; 
-                            } else if (currentUIState == UI_SETTINGS) {
+                                popupMenuIndex = 0;
+                            }
+                            else if (currentUIState == UI_POPUP_MENU) {
+                                currentUIState = UI_PLAYER;
+                                popupMenuIndex = 0;
+                            }
+                            else if (currentUIState == UI_SETTINGS) {
                                 currentUIState = UI_POPUP_MENU;
-                            } else {
+                                popupMenuIndex = 3; 
+                            }
+                            else {
                                 currentUIState = UI_PLAYER;
                             }
-                            resetActivityTimer();
-                            continue; 
-                        }
 
-                        if (ch == 21 || (ch == 'u' && ks.ctrl)) { 
+                            continue;
+                        }
+                        
+
+                        if (ch == 'u' && ks.ctrl) { 
                             if (!isMassStorageMode) {
-                                audio.stopSong();
-                                isPlaying = false;
-                                isStoped = true;
+                                if (isPlaying) {
+                                    playbackTime = millis() - trackStartMillis; 
+                                    isPlaying = false;
+                                } else {
+                                    trackStartMillis = millis() - playbackTime;
+                                    isPlaying = true;
+                                }
                                 nextTrackRequest = false;
                                 delay(100); 
                                 if (startMassStorageMode()) Serial.println("MSC Started");
@@ -151,7 +219,6 @@ void setup() {
                 if (M5Cardputer.Keyboard.isChange()) {
                     auto ks = M5Cardputer.Keyboard.keysState();
                     
-                    bool exitPressed = false;
                     for (auto ch : ks.word) {
                         if (ch == '`') exitPressed = true;
                     }

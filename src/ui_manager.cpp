@@ -48,31 +48,53 @@ const int MARQUEE_SPEED = 2;
 String popupText = "";
 unsigned long popupStart = 0;
 const unsigned long POPUP_DURATION = 1000;
+
 int8_t popupMenuIndex = 0;
-const char* popupOptions[] = {"Select Folder", "USB Mass Storage", "Settings"};
+const char* popupOptions[] = {"Back to Player", "Select Folder", "USB Mass Storage", "Settings"};
+const int VISIBLE_POPUP_ITEMS = 3; 
+const int MENU_ITEM_COUNT = 4;
+int popupViewStartIndex = 0;
 
 
 void drawPopupMenu() {
-    sprite1.fillRoundRect(30, 20, 180, 100, 8, TFT_BLACK); // Dark background
-    sprite1.drawRoundRect(30, 20, 180, 100, 8, TFT_WHITE); // White border
+    if (popupMenuIndex < popupViewStartIndex) {
+        popupViewStartIndex = popupMenuIndex;
+    } else if (popupMenuIndex >= popupViewStartIndex + VISIBLE_POPUP_ITEMS) {
+        popupViewStartIndex = popupMenuIndex - VISIBLE_POPUP_ITEMS + 1;
+    }
+
+    sprite1.fillRoundRect(30, 20, 180, 100, 8, TFT_BLACK); 
+    sprite1.drawRoundRect(30, 20, 180, 100, 8, TFT_WHITE); 
     
     sprite1.setTextColor(TFT_YELLOW);
-    sprite1.setTextDatum(MC_DATUM); // Middle-Center alignment
+    sprite1.setTextDatum(MC_DATUM);
     sprite1.drawString("MAIN MENU", 120, 35);
 
-    for (int i = 0; i < 3; i++) {
-        if (i == popupMenuIndex) {
-            sprite1.fillRect(35, 52 + (i * 20), 170, 18, TFT_GREENYELLOW);
+    for (int i = 0; i < VISIBLE_POPUP_ITEMS; i++) {
+        int actualIndex = i + popupViewStartIndex;
+        
+        if (actualIndex >= MENU_ITEM_COUNT) break;
+
+        int drawY = 52 + (i * 20);
+
+        if (actualIndex == popupMenuIndex) {
+            sprite1.fillRect(35, drawY, 170, 18, TFT_GREENYELLOW);
             sprite1.setTextColor(TFT_BLACK); 
         } else {
             sprite1.setTextColor(TFT_LIGHTGREY);
         }
-        sprite1.drawString(popupOptions[i], 120, 61 + (i * 20));
+        
+        sprite1.drawString(popupOptions[actualIndex], 120, drawY + 9);
     }
 
+    if (popupViewStartIndex > 0) {
+        sprite1.fillTriangle(195, 45, 200, 40, 205, 45, TFT_WHITE);
+    }
+    if (popupViewStartIndex + VISIBLE_POPUP_ITEMS < MENU_ITEM_COUNT) {
+        sprite1.fillTriangle(195, 105, 200, 110, 205, 105, TFT_WHITE);
+    }
     sprite1.pushSprite(0, 0);
-
-    sprite1.setTextDatum(TL_DATUM); 
+    sprite1.setTextDatum(TL_DATUM);
 }
 
 void drawSettingsMenu() {
@@ -90,8 +112,6 @@ void drawSettingsMenu() {
     sprite1.drawString("Esc (`): Back", 120, 115);
     sprite1.pushSprite(0, 0);
 }
-
-
 
 
 void initUI() {
