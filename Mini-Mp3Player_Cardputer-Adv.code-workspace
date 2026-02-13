@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "CardputerSweeper",
+			"path": "../../Documents/PlatformIO/Projects/CardputerSweeper"
+		}
+	],
+	"settings": {}
+}

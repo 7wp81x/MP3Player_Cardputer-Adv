@@ -4,6 +4,9 @@
 #include <Arduino.h>
 #include <SD.h>
 #include <SPI.h>
+// USB / MSC Includes
+#include <USB.h>
+#include <USBMSC.h>
 
 #define SD_SCK 40
 #define SD_MISO 39
@@ -27,8 +30,14 @@ extern uint8_t scanTotal;
 
 extern SemaphoreHandle_t sdMutex;
 
+extern USBMSC msc;
+extern bool isMassStorageMode;
+
 bool initSDCard();
 void scanDirectory(const String& folder);
 String getFileName(uint8_t index);
+
+bool startMassStorageMode();
+void stopMassStorageMode();
 
 #endif
