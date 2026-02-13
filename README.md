@@ -1,21 +1,24 @@
 # Mini MP3 Player for Cardputer Adv
 
-This is fork from sourcels's repository: [Mini-Mp3Player_Cardputer-Adv](https://github.com/AleksM2137/Mini-Mp3Player_Cardputer-Adv)
-
-SD-Card is required
+SD-Card is required for this project to work
 
 ## **Added:**
 - Auto load music on specific directory (default: /Music)
 - Main menu
 - USB Mass Storage (MSC)
-- Settings (set custom load on boot folder)
+- Settings
+  - **Arrows < and > to change, press enter for music boot path**
+  - Set default music boot path
+  - Set screen dim ON/OFF
+  - Set Screen dim timeout
+  - Vinyl Anim ON/OFF
 
 ## **New shortcuts:**
 - Press physical BtnA to instantly play a random track
 - Pause and open menu ('`' or esc key)
 - Open Folder browser (backspace or delete key)
 - Dim screen toggle ('t' key)
-- Start USB Mass storage mode (ctrl + 'u')
+- Start USB Mass storage mode (ctrl + 'u') or from menu
 
 ## **UI Changes:**
 - Supports Japanese characters
