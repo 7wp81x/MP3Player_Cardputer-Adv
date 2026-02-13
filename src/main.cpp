@@ -149,6 +149,8 @@ void setup() {
     M5Cardputer.Keyboard.begin(std::move(reader));
     initSettings();
 
+ 
+
     xTaskCreatePinnedToCore([] (void*) { 
         initUI();
         if (!initSDCard()) {
@@ -158,8 +160,9 @@ void setup() {
 
         showLoadingDots("Loading Music...");
 
-        currentFolder = defaultBootFolder;
-        scanDirectory(currentFolder);
+        scanDirectory(lastFolder); 
+        currentFileIndex = lastFileIndex;
+        selectedFileIndex = lastFileIndex;
         
         if (fileCount > 0) {
             currentUIState = UI_PLAYER;

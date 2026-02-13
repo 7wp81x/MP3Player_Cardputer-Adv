@@ -60,6 +60,11 @@ const int VISIBLE_POPUP_ITEMS = 3;
 const int MENU_ITEM_COUNT = 4;
 int popupViewStartIndex = 0;
 
+int settingsIndex = 0;
+const int SETTINGS_COUNT = 5;
+String menuItems[] = {"Boot Path", "Screen Dim", "Dim Time", "Vinyl Anim", "Save & Exit"};
+
+
 bool albumArtEnabled = true;
 const unsigned long ALBUM_ART_TIMEOUT = 10000; // 10 Seconds
 unsigned long lastInputTime = 0;
@@ -68,8 +73,10 @@ String currentAlbum = "Unknown Album";
 bool hasAlbumArt = false;
 bool isShowMp3Image = true;
 
-M5Canvas artSprite(&sprite1);
+bool isTypingPath = false;
+String pathInputBuffer = "";
 
+M5Canvas artSprite(&sprite1);
 
 
 void drawPopupMenu() {
@@ -114,19 +121,97 @@ void drawPopupMenu() {
 }
 
 void drawSettingsMenu() {
-    sprite1.fillSprite(TFT_BLACK);
-    sprite1.setTextColor(TFT_CYAN);
-    sprite1.drawString("SETTINGS", 120, 20);
+    sprite1.fillSprite(0x0841);
+    sprite1.setTextDatum(TC_DATUM);
+    sprite1.setTextColor(TFT_YELLOW);
+    sprite1.drawString("SYSTEM SETTINGS", 120, 5);
+    sprite1.drawLine(0, 20, 240, 20, TFT_WHITE);
+
+    for (int i = 0; i < SETTINGS_COUNT; i++) {
+        int y = 30 + (i * 22);
+        
+        if (i == settingsIndex) {
+            sprite1.fillRect(5, y - 2, 230, 20, isTypingPath && i == 0 ? 0x5000 : 0x2104); 
+            sprite1.setTextColor(TFT_CYAN);
+        } else {
+            sprite1.setTextColor(TFT_WHITE);
+        }
+
+        sprite1.setTextDatum(TL_DATUM);
+        sprite1.drawString(menuItems[i], 15, y);
+
+        sprite1.setTextDatum(TL_DATUM);
+        sprite1.drawString(menuItems[i], 15, y);
+
+        sprite1.setTextDatum(TR_DATUM);
+        String val = "";
+        
+        if (i == 0) {
+            val = (isTypingPath) ? pathInputBuffer + "_" : defaultBootFolder;
+        } 
+        else if (i == 1) val = screenTimeoutEnabled ? "ON" : "OFF";
+        else if (i == 2) val = String(screenTimeoutSeconds) + "s";
+        else if (i == 3) val = isShowMp3Image ? "ON" : "OFF";
+        else if (i == 4) val = "ENTER";
+
+        if (val.length() > 20) val = "..." + val.substring(val.length() - 17);
+        
+        sprite1.drawString(val, 225, y);
+    }
     
-    sprite1.setTextColor(TFT_WHITE);
-    sprite1.drawString("Boot Folder:", 120, 50);
-    sprite1.setTextColor(TFT_GREEN);
-    sprite1.drawString(defaultBootFolder, 120, 70);
+    sprite1.setTextDatum(BC_DATUM);
+    sprite1.setTextColor(grays[8]);
+    sprite1.drawString(isTypingPath ? "Type path then ENTER" : "Arrows to toggle, ENTER to Edit", 120, 130);
     
-    sprite1.setTextColor(TFT_DARKGREY);
-    sprite1.drawString("Enter: Set current folder", 120, 100);
-    sprite1.drawString("Esc (`): Back", 120, 115);
     sprite1.pushSprite(0, 0);
+}
+
+void handleSettingsKeys(char key) {
+    if (isTypingPath) {
+        if (key == '\n') {
+            defaultBootFolder = validatePath(pathInputBuffer);
+            isTypingPath = false;
+            saveSettings();
+        } else if (key == '\b' || key == '`') {
+            if (pathInputBuffer.length() > 0) pathInputBuffer.remove(pathInputBuffer.length() - 1);
+        } else if (key >= 32 && key <= 126) {
+            pathInputBuffer += key;
+        }
+        return; 
+    }
+
+    if (key == ';') {
+        settingsIndex = (settingsIndex <= 0) ? SETTINGS_COUNT - 1 : settingsIndex - 1;
+    } else if (key == '.') {
+        settingsIndex = (settingsIndex >= SETTINGS_COUNT - 1) ? 0 : settingsIndex + 1;
+    } 
+    
+    else if (key == ',' || key == '/') { 
+        int dir = (key == '/') ? 1 : -1;
+        
+        switch (settingsIndex) {
+            case 1:
+                screenTimeoutEnabled = !screenTimeoutEnabled;
+                break;
+            case 2:
+                if (dir > 0) screenTimeoutSeconds += 5;
+                else if (screenTimeoutSeconds > 5) screenTimeoutSeconds -= 5;
+                break;
+            case 3:
+                isShowMp3Image = !isShowMp3Image;
+                break;
+        }
+    }
+    
+    else if (key == '\n' && settingsIndex == 0) {
+        isTypingPath = true;
+        pathInputBuffer = defaultBootFolder;
+    }
+    
+    else if (key == '`' || key == '\b') {
+        saveSettings();
+        currentUIState = UI_PLAYER;
+    }
 }
 
 
@@ -154,7 +239,7 @@ void resetActivityTimer() {
 
 void checkScreenTimeout() {
     if (!screenTimeoutEnabled || isScreenDimmed) return;
-    if (millis() - lastActivityTime > SCREEN_DIM_TIMEOUT) {
+    if (millis() - lastActivityTime > (screenTimeoutSeconds * 1000)) {
         M5Cardputer.Display.sleep();
         isScreenDimmed = true;
     }
@@ -630,12 +715,7 @@ void handleKeyPress(char key) {
         }
         return;
     } else if (currentUIState == UI_SETTINGS) {
-        if (key == '\n') {
-            defaultBootFolder = currentFolder;
-            saveSettings();
-            popupText = "Default Saved!";
-            popupStart = millis();
-        }
+        handleSettingsKeys(key);
         return;
     } else if (currentUIState == UI_FOLDER_SELECT) {
         const bool hasParent = (currentFolder != "/");
@@ -737,6 +817,10 @@ void handleKeyPress(char key) {
             isStoped = false;
             textPos = 0;
             nextTrackRequest = true;
+
+            lastFolder = currentFolder;
+            lastFileIndex = currentFileIndex;
+
         } else if (key == ';' || key == '.') {
             if (fileCount > 0) {
                 if (key == ';') selectedFileIndex = (selectedFileIndex == 0) ? (fileCount - 1) : (selectedFileIndex - 1);
