@@ -60,6 +60,18 @@ extern bool screenTimeoutEnabled;
 extern bool isScreenDimmed;
 extern int stableBat;
 
+
+extern bool albumArtEnabled;
+extern const unsigned long ALBUM_ART_TIMEOUT;
+extern unsigned long lastInputTime;
+extern String currentArtist;
+extern bool hasAlbumArt;
+extern bool isShowMp3Image;
+extern String currentAlbum;
+
+extern M5Canvas artSprite;
+
+
 extern const unsigned long HOLD_THRESHOLD_MS;
 extern const unsigned long REPEAT_INTERVAL_MS;
 extern const unsigned long POPUP_DURATION;

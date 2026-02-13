@@ -56,9 +56,9 @@ bool startMassStorageMode() {
     USB.begin();
 
     isMassStorageMode = true;
-
+    M5Cardputer.Display.setFont(&fonts::Font0);
     M5Cardputer.Display.fillScreen(TFT_BLACK);
-    M5Cardputer.Display.setTextDatum(MC_DATUM);
+    M5Cardputer.Display.setTextDatum(TL_DATUM);
     
     M5Cardputer.Display.setTextColor(TFT_GREENYELLOW);
     M5Cardputer.Display.setTextSize(2);

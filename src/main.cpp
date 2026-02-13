@@ -4,7 +4,8 @@
 #include "file_manager.h"
 #include "ui_manager.h"
 #include "settings.h"
-#include <utility/Keyboard/KeyboardReader/TCA8418.h>
+#include "utility/Keyboard/KeyboardReader/TCA8418.h"
+#include "TJpg_Decoder.h"
 
 TaskHandle_t handleUITask = NULL;
 TaskHandle_t handleAudioTask = NULL;
@@ -62,7 +63,78 @@ void handlePopupSelection() {
     }
 }
 
+void audio_id3data(const char *info) {
+    String sInfo = String(info);
+    if (sInfo.startsWith("TPE1: ")) {
+        currentArtist = sInfo.substring(6);
+    }
+    if (sInfo.startsWith("TALB: ")) {          // ← ADD THIS
+        currentAlbum = sInfo.substring(6);
+    }
+    Serial.print("ID3: "); Serial.println(info);
+}
 
+void audio_id3image(File& file, const size_t pos, const size_t size) {
+    if (!albumArtEnabled) return;
+
+    Serial.printf("Album art: %d bytes at pos %d\n", size, pos);
+
+    // ── SAFETY: too big for no-PSRAM device ─────────────────────
+    if (size > 120000) {                     // 120 KB max (you can try 150000 if you want)
+        Serial.println("→ Too large, using disk icon instead");
+        hasAlbumArt = false;
+        return;
+    }
+
+    artSprite.fillSprite(TFT_BLACK);
+    TJpgDec.setJpgScale(8);                  // highest scale = smallest RAM usage
+
+    TJpgDec.setCallback([](int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) -> bool {
+        artSprite.pushImage(x, y, w, h, bitmap);
+        return true;
+    });
+
+    uint8_t *buffer = (uint8_t*)malloc(size);
+    if (buffer) {
+        file.seek(pos);
+        file.read(buffer, size);
+
+        // Most MP3s have extra ID3 header before the real JPEG → find FF D8
+        size_t jpegStart = 0;
+        for (size_t i = 0; i < size - 1; i++) {
+            if (buffer[i] == 0xFF && buffer[i + 1] == 0xD8) {
+                jpegStart = i;
+                break;
+            }
+        }
+
+        uint16_t jpgW = 0, jpgH = 0;
+        TJpgDec.getJpgSize(&jpgW, &jpgH, buffer + jpegStart, size - jpegStart);
+
+        uint16_t scaledW = jpgW / 8;
+        uint16_t scaledH = jpgH / 8;
+        int16_t ox = (artSprite.width()  - scaledW) / 2;
+        int16_t oy = (artSprite.height() - scaledH) / 2;
+        if (ox < 0) ox = 0;
+        if (oy < 0) oy = 0;
+
+        TJpgDec.drawJpg(ox, oy, buffer + jpegStart, size - jpegStart);
+
+        free(buffer);
+        hasAlbumArt = true;
+        Serial.printf("→ Decoded successfully (%dx%d → ~%dx%d)\n", jpgW, jpgH, scaledW, scaledH);
+    } else {
+        Serial.println("→ Out of memory (even after size check)");
+        hasAlbumArt = false;
+    }
+}
+
+void audio_eof_mp3(const char *) {
+    if (!isMassStorageMode && currentUIState == UI_PLAYER && fileCount > 0) {
+        currentFileIndex = (currentFileIndex + 1) % fileCount;
+        nextTrackRequest = true;
+    }
+}
 
 void setup() {
     auto cfg = M5.config();
@@ -117,27 +189,15 @@ void setup() {
                             resetActivityTimer();
 
                             if (isMassStorageMode) {
+                                sprite1.setTextDatum(TL_DATUM);
                                 M5Cardputer.Display.fillScreen(TFT_BLACK);
                                 M5Cardputer.Display.setTextColor(TFT_WHITE);
-                                M5Cardputer.Display.setTextDatum(MC_DATUM);
-                                M5Cardputer.Display.drawString("Exiting USB mode...", 120, 67);
-                                delay(600);
+                                M5Cardputer.Display.drawString("Exiting & Rebooting...", 120, 67);
+                                
+                                msc.end(); 
+                                delay(500); 
 
-                                msc.end();
-                                SD.end();
-                                delay(200);
-
-                                if (initSDCard()) {
-                                    scanDirectory(currentFolder);
-                                    currentUIState = UI_PLAYER;
-                                } else {
-                                    popupText = "SD Error - Reboot?";
-                                    popupStart = millis();
-                                }
-
-                                isMassStorageMode = false;
-                                usbConnected = false;
-                                continue;
+                                ESP.restart();
                             }
 
                             if (currentUIState == UI_PLAYER) {
@@ -296,6 +356,10 @@ void setup() {
         while (true) {
             if (!isMassStorageMode) {
                 if (nextTrackRequest && fileCount > 0) {
+                    hasAlbumArt = false;
+                    currentArtist = "Unknown Artist";
+                    currentAlbum  = "Unknown Album";
+
                     audio.stopSong();
                     trackStartMillis = millis();
                     playbackTime = 0;
@@ -330,9 +394,3 @@ void loop() {
     delay(100);
 }
 
-void audio_eof_mp3(const char *) {
-    if (!isMassStorageMode && currentUIState == UI_PLAYER && fileCount > 0) {
-        currentFileIndex = (currentFileIndex + 1) % fileCount;
-        nextTrackRequest = true;
-    }
-}
