@@ -12,7 +12,7 @@ TaskHandle_t handleAudioTask = NULL;
 volatile bool usbConnected = false;
 bool exitPressed = false;
 
-void showLoadingDots(const char* message = "Booting...") {
+void showLoadingDots(const char* message = "Initializing...") {
     uint16_t accent = TFT_SKYBLUE;
     uint16_t dimGray = 0x3186;
     float angle = 0;
@@ -163,7 +163,7 @@ void setup() {
     Serial.println("Configuring TCA8418 keyboard");
     std::unique_ptr<KeyboardReader> reader(new TCA8418KeyboardReader());
     M5Cardputer.Keyboard.begin(std::move(reader));
-    initSettings();
+    
 
  
 
@@ -176,10 +176,11 @@ void setup() {
 
         showLoadingDots();
 
-        scanDirectory(lastFolder); 
+        scanDirectory(lastFolder);
         currentFileIndex = lastFileIndex;
         selectedFileIndex = lastFileIndex;
-        
+        loadSettings();
+
         if (fileCount > 0) {
             currentUIState = UI_PLAYER;
             selectedFileIndex = 0;

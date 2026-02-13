@@ -152,7 +152,7 @@ void drawSettingsMenu() {
         else if (i == 1) val = screenTimeoutEnabled ? "ON" : "OFF";
         else if (i == 2) val = String(screenTimeoutSeconds) + "s";
         else if (i == 3) val = isShowMp3Image ? "ON" : "OFF";
-        else if (i == 4) val = "ENTER";
+        else if (i == 4) val = "Save & exit";
 
         if (val.length() > 20) val = "..." + val.substring(val.length() - 17);
         
@@ -166,14 +166,33 @@ void drawSettingsMenu() {
     sprite1.pushSprite(0, 0);
 }
 
+void showPopup(const char* message) {
+    int w = 160;
+    int h = 40;
+    int x = (240 - w) / 2;
+    int y = (135 - h) / 2;
+
+    sprite1.fillRoundRect(x, y, w, h, 8, 0x2104);
+    sprite1.drawRoundRect(x, y, w, h, 8, TFT_CYAN);
+    
+    sprite1.setTextColor(TFT_WHITE);
+    sprite1.setTextDatum(MC_DATUM);
+    sprite1.setFont(&fonts::Font0);
+    sprite1.drawString(message, 120, 135 / 2);
+    
+    sprite1.pushSprite(0, 0);
+}
+
 void handleSettingsKeys(char key) {
     if (isTypingPath) {
         if (key == '\n') {
             defaultBootFolder = validatePath(pathInputBuffer);
             isTypingPath = false;
             saveSettings();
+            showPopup("Path Saved!"); // Feedback for path update
         } else if (key == '\b' || key == '`') {
             if (pathInputBuffer.length() > 0) pathInputBuffer.remove(pathInputBuffer.length() - 1);
+            else isTypingPath = false;
         } else if (key >= 32 && key <= 126) {
             pathInputBuffer += key;
         }
@@ -188,32 +207,33 @@ void handleSettingsKeys(char key) {
     
     else if (key == ',' || key == '/') { 
         int dir = (key == '/') ? 1 : -1;
-        
         switch (settingsIndex) {
-            case 1:
-                screenTimeoutEnabled = !screenTimeoutEnabled;
-                break;
+            case 1: screenTimeoutEnabled = !screenTimeoutEnabled; break;
             case 2:
                 if (dir > 0) screenTimeoutSeconds += 5;
                 else if (screenTimeoutSeconds > 5) screenTimeoutSeconds -= 5;
                 break;
-            case 3:
-                isShowMp3Image = !isShowMp3Image;
-                break;
+            case 3: isShowMp3Image = !isShowMp3Image; break;
         }
     }
     
-    else if (key == '\n' && settingsIndex == 0) {
-        isTypingPath = true;
-        pathInputBuffer = defaultBootFolder;
+    else if (key == '\n') {
+        if (settingsIndex == 0) {
+            isTypingPath = true;
+            pathInputBuffer = defaultBootFolder;
+        } 
+        else if (settingsIndex == 4) { // Save & Exit option
+            saveSettings();
+            showPopup("Settings Saved!"); // Visual Feedback
+            delay(800); // Short pause to let user see the message
+            currentUIState = UI_PLAYER;
+        }
     }
     
     else if (key == '`' || key == '\b') {
-        saveSettings();
         currentUIState = UI_PLAYER;
     }
 }
-
 
 void initUI() {
     M5Cardputer.Display.setRotation(1);
@@ -716,6 +736,7 @@ void handleKeyPress(char key) {
         return;
     } else if (currentUIState == UI_SETTINGS) {
         handleSettingsKeys(key);
+        
         return;
     } else if (currentUIState == UI_FOLDER_SELECT) {
         const bool hasParent = (currentFolder != "/");
