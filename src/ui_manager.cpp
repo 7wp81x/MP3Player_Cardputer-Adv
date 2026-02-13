@@ -8,12 +8,30 @@ UIState currentUIState = UI_FOLDER_SELECT;
 M5Canvas sprite1(&M5Cardputer.Display);
 M5Canvas sprite2(&M5Cardputer.Display);
 
-bool nextTrackRequest = false;
+uint8_t selectedFolderIndex = 0;
+uint8_t selectedFileIndex = 0;
+uint16_t viewStartIndex = 0;
+int playingFileIndex = -1;
 const uint8_t VISIBLE_FILE_COUNT = 9;
 
+KeyRepeat repeatState;
+PressedButton pressedBtn = NONE;
+const unsigned long HOLD_THRESHOLD_MS = 500;
+const unsigned long REPEAT_INTERVAL_MS = 120;
+unsigned long pressAnimStart = 0;
+const unsigned long PRESS_ANIM_DURATION = 120;
+
+bool nextTrackRequest = false;
+unsigned long trackStartMillis = 0;
+unsigned long playbackTime = 0;
+uint16_t volumeStep = 2;
+
 bool isScreenDimmed = false;
+bool screenTimeoutEnabled = false;
 constexpr unsigned long SCREEN_DIM_TIMEOUT = 30000;
 unsigned long lastActivityTime = 0;
+uint8_t brightnessStep = 10;
+int stableBat = 0;
 
 uint8_t sliderPos = 0;
 int16_t textPos = 90;
@@ -22,36 +40,16 @@ uint8_t g[14] = {0};
 unsigned short grays[18];
 unsigned short gray, light;
 
-unsigned long trackStartMillis = 0;
-unsigned long playbackTime = 0;
-
-uint8_t volumeStep = 2;
-uint8_t brightnessStep = 10;
-uint8_t selectedFolderIndex = 0;
-uint8_t selectedFileIndex = 0;
-uint16_t viewStartIndex = 0; 
-bool screenTimeoutEnabled = false;
+int16_t marqueePos = 0;
+unsigned long lastMarqueeUpdate = 0;
+const unsigned long MARQUEE_INTERVAL = 180;
+const int MARQUEE_SPEED = 2;
 
 String popupText = "";
 unsigned long popupStart = 0;
 const unsigned long POPUP_DURATION = 1000;
-enum PressedButton { NONE = 0, BTN_A, BTN_P, BTN_N, BTN_R };
-PressedButton pressedBtn = NONE;
-unsigned long pressAnimStart = 0;
-const unsigned long PRESS_ANIM_DURATION = 120;  // ms - feels snappy
-KeyRepeat repeatState;
-
-const unsigned long HOLD_THRESHOLD_MS   = 500;   // ms before repeat starts
-const unsigned long REPEAT_INTERVAL_MS  = 120;   // ms between repeats
-
-int16_t marqueePos = 0;               // current scroll offset
-unsigned long lastMarqueeUpdate = 0;  // last time we moved it
-const unsigned long MARQUEE_INTERVAL = 180;  // ms between steps
-const int MARQUEE_SPEED = 2;                 // pixels per step
-int playingFileIndex = -1;
 int8_t popupMenuIndex = 0;
 const char* popupOptions[] = {"Select Folder", "USB Mass Storage", "Settings"};
-int stableBat = 0;
 
 
 void drawPopupMenu() {
