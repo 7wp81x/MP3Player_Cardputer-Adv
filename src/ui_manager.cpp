@@ -161,7 +161,7 @@ void drawSettingsMenu() {
     
     sprite1.setTextDatum(BC_DATUM);
     sprite1.setTextColor(grays[8]);
-    sprite1.drawString(isTypingPath ? "Type path then ENTER" : "Arrows to toggle, ENTER to Edit", 120, 130);
+    sprite1.drawString(isTypingPath ? "Type path then ENTER" : "", 120, 130);
     
     sprite1.pushSprite(0, 0);
 }

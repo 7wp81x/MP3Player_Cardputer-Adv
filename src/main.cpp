@@ -12,24 +12,40 @@ TaskHandle_t handleAudioTask = NULL;
 volatile bool usbConnected = false;
 bool exitPressed = false;
 
-void showLoadingDots(const char* message = "Scanning folder...") {
-    sprite1.fillSprite(TFT_BLACK);
-    sprite1.setTextColor(TFT_WHITE, TFT_BLACK);
-    sprite1.setTextFont(2);
-    sprite1.setTextDatum(MC_DATUM);
-
-    const char* dots[] = {"", ".", "..", "..."};
-    uint8_t idx = 0;
+void showLoadingDots(const char* message = "Booting...") {
+    uint16_t accent = TFT_SKYBLUE;
+    uint16_t dimGray = 0x3186;
+    float angle = 0;
 
     unsigned long t0 = millis();
-    while (millis() - t0 < 5000) {
+    while (millis() - t0 < 3000) { 
         sprite1.fillSprite(TFT_BLACK);
-        sprite1.drawString(message, 120, 55);
-        sprite1.drawString(dots[idx], 120, 80);
+        
+        int cx = 120;
+        int cy = 55;
+        
+        sprite1.drawArc(cx, cy, 22, 21, 0, 360, dimGray);
+        sprite1.drawArc(cx, cy, 22, 21, (int)angle, (int)angle + 90, accent);
+        
+        sprite1.setTextColor(TFT_WHITE);
+        sprite1.setFont(&fonts::FreeSansBold9pt7b);
+        sprite1.setTextDatum(MC_DATUM);
+        sprite1.drawString(message, cx, 100);
+
+        sprite1.setFont(&fonts::Font0);
+        sprite1.setTextColor(0x7BEF);
+        sprite1.setTextSize(1);
+        
+        String loadingStatus = "Loading music";
+        for(int i=0; i < (millis()/400 % 4); i++) loadingStatus += ".";
+        sprite1.drawString(loadingStatus, cx, 118);
+
         sprite1.pushSprite(0, 0);
 
-        idx = (idx + 1) % 4;
-        delay(200);
+        angle += 9.0f; 
+        if (angle >= 360) angle -= 360;
+        
+        delay(16);
     }
 }
 
@@ -158,7 +174,7 @@ void setup() {
             while (true) vTaskDelay(1000);
         }
 
-        showLoadingDots("Loading Music...");
+        showLoadingDots();
 
         scanDirectory(lastFolder); 
         currentFileIndex = lastFileIndex;
