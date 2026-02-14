@@ -28,3 +28,22 @@ SD-Card is required for this project to work
 
 ## **Other changes:**
 - Fixed battery percentage constant changing
+
+## Images
+
+Here are some screenshots showing the player in action:
+
+- Main playback screen  
+  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035031_004.jpg
+
+- Menu / settings view  
+  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035243_888.jpg
+
+- Folder browser  
+  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035539_435.jpg
+
+- Playback with animations / vinyl effect  
+  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035558_602.jpg
+
+- Another playback / status view  
+  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035628_954.jpg
