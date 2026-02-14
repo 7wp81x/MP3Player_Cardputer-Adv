@@ -31,19 +31,26 @@ SD-Card is required for this project to work
 
 ## Images
 
-Here are some screenshots showing the player in action:
+Here are some screenshots showing the Mini MP3 Player in action:
 
-- Main playback screen  
-  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035031_004.jpg
+<div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;">
+  <img src="https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035031_004.jpg" 
+       alt="Main playback screen with track info and controls" 
+       style="max-width: 320px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
-- Menu / settings view  
-  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035243_888.jpg
+  <img src="https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035243_888.jpg" 
+       alt="Menu and settings interface" 
+       style="max-width: 320px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
-- Folder browser  
-  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035539_435.jpg
+  <img src="https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035539_435.jpg" 
+       alt="Folder browser view" 
+       style="max-width: 320px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
-- Playback with animations / vinyl effect  
-  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035558_602.jpg
+  <img src="https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035558_602.jpg" 
+       alt="Playback with vinyl animation effect" 
+       style="max-width: 320px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
 
-- Another playback / status view  
-  https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035628_954.jpg
+  <img src="https://raw.githubusercontent.com/7wp81x/MP3Player_Cardputer-Adv/main/screenshots/IMG_20260214_035628_954.jpg" 
+       alt="Another playback or status view" 
+       style="max-width: 320px; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+</div>
